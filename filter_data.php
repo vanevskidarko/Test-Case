@@ -2,6 +2,11 @@
 
 include 'fetch_json.php';
 
+$text_priority = 6;
+
+$rating_prioritiy = 2;
+
+$date_priority = 1;
 
 if(isset($_POST['submit'])){
     print_r($_POST);
@@ -16,7 +21,9 @@ if(isset($_POST['submit'])){
            unset($json_data[$key]);
         }
     }
-
+    function hasTextPriority($reviewText){
+        return strlen($reviewText) > 0;
+    }
     usort($json_data, function($a, $b) { //Sort the array using a user defined function
         $a_score = 0;
         $b_score = 0;
@@ -24,30 +31,32 @@ if(isset($_POST['submit'])){
 
 
         if ($_POST['text_prio'] === "Yes") {
-          $a_score = strlen($a->reviewText) > 0 ? -6 : 6;
-          $b_score = strlen($b->reviewText) > 0 ? -6 : 6;
+          $a_score = hasTextPriority($a->reviewText) ? -$text_priority : $text_priority;
+          $b_score = hasTextPriority($b->reviewText) ? -$text_priority : $text_priority;
         }
         
+        // Sort by rating
         if ($_POST['order_by_rating'] === "Highest First") {
-          $a_score += $a->rating === $b->rating ? 0 : ($a->rating > $b->rating ? -2 : 2);
-          $b_score += $b->rating === $a->rating ? 0 : ($b->rating > $a->rating ? -2 : 2);
+          $a_score += $a->rating === $b->rating ? 0 : ($a->rating > $b->rating ? -$rating_prioritiy : $rating_prioritiy);
+          $b_score += $b->rating === $a->rating ? 0 : ($b->rating > $a->rating ? -$rating_prioritiy : $rating_prioritiy);
         } else {
-          $a_score += $a->rating === $b->rating ? 0 : ($a->rating > $b->rating ? 2 : -2);
-          $b_score += $b->rating === $a->rating ? 0 : ($b->rating > $a->rating ? 2 : -2);
+          $a_score += $a->rating === $b->rating ? 0 : ($a->rating > $b->rating ? $rating_prioritiy : -$rating_prioritiy);
+          $b_score += $b->rating === $a->rating ? 0 : ($b->rating > $a->rating ? $rating_prioritiy : -$rating_prioritiy);
         }
         
+        // Sort by date
          $a_date = new DateTime($a->reviewCreatedOnDate);
          $b_date = new DateTime($b->reviewCreatedOnDate);
         
         if ($_POST['order_by_date'] === "Newest First") {
-          $a_score += $a_date > $b_date ? -1 : 1;
-          $b_score += $b_date > $a_date ? -1 : 1;
+          $a_score += $a_date > $b_date ? -$date_priority : $date_priority;
+          $b_score += $b_date > $a_date ? -$date_priority : $date_priority;
         } else {
-          $a_score += $a_date > $b_date ? 1 : -1;
-          $b_score += $b_date > $a_date ? 1 : -1;
+          $a_score += $a_date > $b_date ? $date_priority : -$date_priority;
+          $b_score += $b_date > $a_date ? $date_priority : -$date_priority;
         }
         
-        
+        // -1 means go left, 1 means go right, 0 means stay
         return $a_score === $b_score ? 0 : ($a_score > $b_score ? 1 : -1);
     });
 
